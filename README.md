@@ -15,15 +15,24 @@
 
 ## Installation
 
-Add the JitPack repository and the dependency to your `build.gradle.kts`:
+Add the following to your `build.gradle.kts`:
 
 ```kotlin
+plugins {
+    kotlin("jvm") version "2.3.0"
+    id("org.jetbrains.kotlin.plugin.compose") version "2.3.0"
+    id("org.jetbrains.compose") version "1.9.3"
+}
+
 repositories {
+    google()
     maven("https://jitpack.io")
 }
 
 dependencies {
-    modImplementation("com.github.apersomany:composite:43be3e88bd")
+    implementation(compose.desktop.windows_x64)
+    implementation(compose.material3)
+    modImplementation("com.github.apersomany:composite:6aaf454f1d")
 }
 ```
 
