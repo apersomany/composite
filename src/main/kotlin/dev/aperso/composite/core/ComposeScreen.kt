@@ -38,10 +38,9 @@ import kotlin.math.pow
 
 @OptIn(InternalComposeUiApi::class, ExperimentalComposeUiApi::class)
 open class ComposeScreen(
-    content: @Composable () -> Unit,
     title: Component = Component.empty(),
-    private val platformContext: PlatformContext = PlatformContext.Empty
-): Screen(title), PlatformContext by platformContext {
+    content: @Composable () -> Unit,
+): Screen(title), PlatformContext by PlatformContext.Empty {
     private val surface = SkiaSurface()
     private val scene = CanvasLayersComposeScene(platformContext = this)
 
@@ -160,9 +159,7 @@ open class ComposeScreen(
             Offset((mouseX * scale).toFloat(), (mouseY * scale).toFloat()),
             button = PointerButton(button)
         )
-        return if (result.anyMovementConsumed) true else {
-            super.mouseClicked(mouseX, mouseY, button)
-        }
+        return true
     }
 
     override fun mouseReleased(mouseX: Double, mouseY: Double, button: Int): Boolean {
@@ -171,9 +168,7 @@ open class ComposeScreen(
             Offset((mouseX * scale).toFloat(), (mouseY * scale).toFloat()),
             button = PointerButton(button)
         )
-        return if (result.anyMovementConsumed) true else {
-            super.mouseClicked(mouseX, mouseY, button)
-        }
+        return true
     }
 
     override fun mouseScrolled(mouseX: Double, mouseY: Double, scrollX: Double, scrollY: Double): Boolean {
