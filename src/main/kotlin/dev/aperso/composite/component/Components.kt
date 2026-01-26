@@ -12,7 +12,7 @@ object Components {
         item: ItemStack,
         modifier: Modifier = Modifier,
         decorations: Boolean = true,
-        tooltip: Boolean = false
+        tooltip: Boolean = true
     ) = dev.aperso.composite.component.Item(item, modifier, decorations, tooltip)
 
     @Composable

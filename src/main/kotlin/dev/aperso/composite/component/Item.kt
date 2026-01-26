@@ -17,10 +17,10 @@ import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
+import com.mojang.blaze3d.systems.RenderSystem
 import dev.aperso.composite.skia.LocalSkiaSurface
 import kotlinx.coroutines.isActive
 import net.minecraft.client.Minecraft
-import net.minecraft.network.chat.Component
 import net.minecraft.world.item.ItemStack
 import org.lwjgl.opengl.GL30
 import kotlin.math.min
@@ -46,40 +46,34 @@ fun Item(item: ItemStack, modifier: Modifier = Modifier, decorations: Boolean = 
                         val position = coordinates.positionInWindow()
                         val bounds = coordinates.boundsInWindow()
                         val height = window.height
-                        
-                        GL30.glEnable(GL30.GL_SCISSOR_TEST)
-                        GL30.glScissor(
+                        pose().pushPose()
+                        val guiX = position.x * density
+                        val guiY = position.y * density
+                        pose().translate(guiX, guiY, 0f)
+                        val itemSizeGui = 16f
+                        val boundsWidthGui = bounds.width * density
+                        val boundsHeightGui = bounds.height * density
+                        val scale = min(boundsWidthGui / itemSizeGui, boundsHeightGui / itemSizeGui)
+                        val offsetX = (boundsWidthGui - itemSizeGui * scale) / 2f
+                        val offsetY = (boundsHeightGui - itemSizeGui * scale) / 2f
+                        pose().translate(offsetX, offsetY, 0f)
+                        pose().scale(scale, scale, 1f)
+                        val scissorDisabled = !GL30.glIsEnabled(GL30.GL_SCISSOR_TEST)
+                        if (scissorDisabled) RenderSystem.enableScissor(
                             bounds.left.toInt(),
                             height - (bounds.top + bounds.height).toInt(),
                             bounds.width.toInt(),
                             bounds.height.toInt()
                         )
-                        
-                        pose().pushPose()
-                        
-                        val guiX = position.x * density
-                        val guiY = position.y * density
-                        pose().translate(guiX, guiY, 0f)
-                        
-                        val itemSizeGui = 16f
-                        val boundsWidthGui = bounds.width * density
-                        val boundsHeightGui = bounds.height * density
-                        val scale = min(boundsWidthGui / itemSizeGui, boundsHeightGui / itemSizeGui)
-                        
-                        val offsetX = (boundsWidthGui - itemSizeGui * scale) / 2f
-                        val offsetY = (boundsHeightGui - itemSizeGui * scale) / 2f
-                        
-                        pose().translate(offsetX, offsetY, 0f)
-                        pose().scale(scale, scale, 1f)
-                        
                         renderFakeItem(item, 0, 0)
+                        if (scissorDisabled) RenderSystem.disableScissor()
                         if (decorations) renderItemDecorations(minecraft.font, item, 0, 0)
                         pose().popPose()
-                        GL30.glDisable(GL30.GL_SCISSOR_TEST)
                         if (tooltip && hovered) {
                             val mouseX = (minecraft.mouseHandler.xpos() * density).toInt()
                             val mouseY = (minecraft.mouseHandler.ypos() * density).toInt()
                             renderTooltip(minecraft.font, item, mouseX, mouseY)
+                            flush()
                         }
                     }
                 }
