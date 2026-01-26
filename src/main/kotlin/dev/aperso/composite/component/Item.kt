@@ -1,5 +1,8 @@
 package dev.aperso.composite.component
 
+import androidx.compose.foundation.hoverable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -17,14 +20,17 @@ import androidx.compose.ui.layout.positionInWindow
 import dev.aperso.composite.skia.LocalSkiaSurface
 import kotlinx.coroutines.isActive
 import net.minecraft.client.Minecraft
+import net.minecraft.network.chat.Component
 import net.minecraft.world.item.ItemStack
 import org.lwjgl.opengl.GL30
 import kotlin.math.min
 
 @Composable
-fun Item(item: ItemStack, modifier: Modifier = Modifier, decorations: Boolean = true) {
+fun Item(item: ItemStack, modifier: Modifier = Modifier, decorations: Boolean = true, tooltip: Boolean = true) {
     val surface = LocalSkiaSurface.current
     var coordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
+    val interactionSource = remember { MutableInteractionSource() }
+    val hovered by interactionSource.collectIsHoveredAsState()
     
     val minecraft = Minecraft.getInstance()
     val window = minecraft.window
@@ -70,10 +76,15 @@ fun Item(item: ItemStack, modifier: Modifier = Modifier, decorations: Boolean = 
                         if (decorations) renderItemDecorations(minecraft.font, item, 0, 0)
                         pose().popPose()
                         GL30.glDisable(GL30.GL_SCISSOR_TEST)
+                        if (tooltip && hovered) {
+                            val mouseX = (minecraft.mouseHandler.xpos() * density).toInt()
+                            val mouseY = (minecraft.mouseHandler.ypos() * density).toInt()
+                            renderTooltip(minecraft.font, item, mouseX, mouseY)
+                        }
                     }
                 }
             }
         }
     }
-    Spacer(modifier.fillMaxSize().onGloballyPositioned { coordinates = it })
+    Spacer(modifier.fillMaxSize().onGloballyPositioned { coordinates = it }.hoverable(interactionSource))
 }

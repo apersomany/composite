@@ -8,7 +8,12 @@ import net.minecraft.world.item.ItemStack
 
 object Components {
     @Composable
-    fun Item(item: ItemStack, modifier: Modifier = Modifier, decorations: Boolean = true) = dev.aperso.composite.component.Item(item, modifier, decorations)
+    fun Item(
+        item: ItemStack,
+        modifier: Modifier = Modifier,
+        decorations: Boolean = true,
+        tooltip: Boolean = false
+    ) = dev.aperso.composite.component.Item(item, modifier, decorations, tooltip)
 
     @Composable
     fun Texture(

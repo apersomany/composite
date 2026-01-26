@@ -20,7 +20,7 @@ object ItemTest : TestCommand("item") {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Components.Item(ItemStack(Items.DIAMOND_SWORD), Modifier.size(64.dp))
-            Components.Item(ItemStack(Items.APPLE).copyWithCount(8), Modifier.size(64.dp))
+            Components.Item(ItemStack(Items.APPLE), Modifier.size(64.dp))
             Components.Item(ItemStack(Items.GRASS_BLOCK).copyWithCount(64), Modifier.size(64.dp))
         }
     }
