@@ -33,11 +33,11 @@ fun Texture(
     modifier: Modifier = Modifier,
     u: Float = 0f,
     v: Float = 0f,
-    uWidth: Float = 1f,
-    vHeight: Float = 1f
+    w: Float = 1f,
+    h: Float = 1f
 ) {
     val abstractTexture = Minecraft.getInstance().textureManager.getTexture(texture)
-    Texture(abstractTexture, modifier, u, v, uWidth, vHeight)
+    Texture(abstractTexture, modifier, u, v, w, h)
 }
 
 @Composable
@@ -46,8 +46,8 @@ fun Texture(
     modifier: Modifier = Modifier,
     u: Float = 0f,
     v: Float = 0f,
-    uWidth: Float = 1f,
-    vHeight: Float = 1f
+    w: Float = 1f,
+    h: Float = 1f
 ) {
     val surface = LocalSkiaSurface.current
     var coordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
@@ -90,9 +90,9 @@ fun Texture(
                         val tesselator = Tesselator.getInstance()
                         val buffer = tesselator.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX)
                         
-                        buffer.addVertex(matrix4f, 0f, heightGui, 0f).setUv(u, v + vHeight)
-                        buffer.addVertex(matrix4f, widthGui, heightGui, 0f).setUv(u + uWidth, v + vHeight)
-                        buffer.addVertex(matrix4f, widthGui, 0f, 0f).setUv(u + uWidth, v)
+                        buffer.addVertex(matrix4f, 0f, heightGui, 0f).setUv(u, v + h)
+                        buffer.addVertex(matrix4f, widthGui, heightGui, 0f).setUv(u + w, v + h)
+                        buffer.addVertex(matrix4f, widthGui, 0f, 0f).setUv(u + w, v)
                         buffer.addVertex(matrix4f, 0f, 0f, 0f).setUv(u, v)
                         
                         BufferUploader.drawWithShader(buffer.buildOrThrow())

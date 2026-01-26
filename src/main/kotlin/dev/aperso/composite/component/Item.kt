@@ -22,7 +22,7 @@ import org.lwjgl.opengl.GL30
 import kotlin.math.min
 
 @Composable
-fun Item(item: ItemStack, modifier: Modifier = Modifier) {
+fun Item(item: ItemStack, modifier: Modifier = Modifier, decorations: Boolean = true) {
     val surface = LocalSkiaSurface.current
     var coordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
     
@@ -67,6 +67,7 @@ fun Item(item: ItemStack, modifier: Modifier = Modifier) {
                         pose().scale(scale, scale, 1f)
                         
                         renderFakeItem(item, 0, 0)
+                        if (decorations) renderItemDecorations(minecraft.font, item, 0, 0)
                         pose().popPose()
                         GL30.glDisable(GL30.GL_SCISSOR_TEST)
                     }
