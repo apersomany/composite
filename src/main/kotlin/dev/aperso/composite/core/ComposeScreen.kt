@@ -27,7 +27,9 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
 import dev.aperso.composite.skia.LocalSkiaSurface
 import dev.aperso.composite.skia.SkiaSurface
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.withContext
 import net.minecraft.client.gui.GuiGraphics
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.network.chat.Component
@@ -56,11 +58,13 @@ open class ComposeScreen(
             val transferable = clipEntry?.nativeClipEntry as? Transferable
             if (transferable != null && transferable.isDataFlavorSupported(DataFlavor.stringFlavor)) {
                 try {
-                    val text = transferable.getTransferData(DataFlavor.stringFlavor) as? String
+                    val text = withContext(Dispatchers.IO) {
+                        transferable.getTransferData(DataFlavor.stringFlavor)
+                    } as? String
                     if (text != null) {
                         minecraft?.keyboardHandler?.clipboard = text
                     }
-                } catch (ignored: Exception) {}
+                } catch (_: Exception) {}
             }
         }
     }
@@ -154,7 +158,7 @@ open class ComposeScreen(
     }
 
     override fun mouseClicked(mouseX: Double, mouseY: Double, button: Int): Boolean {
-        val result = scene.sendPointerEvent(
+        scene.sendPointerEvent(
             PointerEventType.Press,
             Offset((mouseX * scale).toFloat(), (mouseY * scale).toFloat()),
             button = PointerButton(button)
@@ -163,7 +167,7 @@ open class ComposeScreen(
     }
 
     override fun mouseReleased(mouseX: Double, mouseY: Double, button: Int): Boolean {
-        val result = scene.sendPointerEvent(
+        scene.sendPointerEvent(
             PointerEventType.Release,
             Offset((mouseX * scale).toFloat(), (mouseY * scale).toFloat()),
             button = PointerButton(button)
