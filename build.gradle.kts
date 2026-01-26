@@ -6,7 +6,7 @@ plugins {
     id("net.fabricmc.fabric-loom-remap") version "1.14-SNAPSHOT"
 }
 
-version = "0.1.0"
+version = "0.2.0"
 group = "dev.aperso"
 
 java {
@@ -19,6 +19,8 @@ repositories {
     google()
 }
 
+val natives = arrayListOf<File>()
+
 dependencies {
     minecraft("com.mojang:minecraft:1.21.1")
     mappings(loom.officialMojangMappings())
@@ -28,14 +30,26 @@ dependencies {
     modImplementation("net.fabricmc:fabric-language-kotlin:1.13.8+kotlin.2.3.0")
 
     val transitiveInclude by configurations.creating
-
-    transitiveInclude(implementation(compose.desktop.windows_x64)!!)
     transitiveInclude(implementation(compose.material3)!!)
-
-    transitiveInclude.resolvedConfiguration.lenientConfiguration.artifacts.forEach {
-        val id = it.moduleVersion.id.toString()
-        include(id)
+    transitiveInclude(implementation(compose.desktop.windows_x64)!!)
+    transitiveInclude(implementation(compose.desktop.windows_arm64)!!)
+    transitiveInclude(implementation(compose.desktop.macos_x64)!!)
+    transitiveInclude(implementation(compose.desktop.macos_arm64)!!)
+    transitiveInclude(implementation(compose.desktop.linux_x64)!!)
+    transitiveInclude(implementation(compose.desktop.linux_arm64)!!)
+    transitiveInclude.resolvedConfiguration.resolvedArtifacts.forEach {
+        val id = it.moduleVersion.id
+        if (id.group == "org.jetbrains.skiko") {
+            natives.add(it.file)
+        } else {
+            include(id.toString())
+        }
     }
+}
+
+tasks.jar {
+    from(natives.map { zipTree(it) })
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
 tasks.processResources {
