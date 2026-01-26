@@ -32,7 +32,7 @@ repositories {
 dependencies {
     implementation(compose.desktop.windows_x64)
     implementation(compose.material3)
-    modImplementation("com.github.apersomany:composite:6aaf454f1d")
+    modImplementation("com.github.apersomany:composite:733ec4da24")
 }
 ```
 
