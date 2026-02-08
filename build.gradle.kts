@@ -6,7 +6,7 @@ plugins {
     id("net.fabricmc.fabric-loom-remap") version "1.14-SNAPSHOT"
 }
 
-version = "0.2.1"
+version = "0.3.0"
 group = "dev.aperso"
 
 java {

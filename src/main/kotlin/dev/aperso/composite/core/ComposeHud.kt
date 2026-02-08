@@ -16,7 +16,7 @@ import net.minecraft.client.gui.GuiGraphics
 import org.jetbrains.skiko.currentNanoTime
 
 @OptIn(InternalComposeUiApi::class, ExperimentalComposeUiApi::class)
-class ComposeHud(content: @Composable () -> Unit): HudRenderCallback {
+open class ComposeHud(content: @Composable () -> Unit): HudRenderCallback {
     private val scene = CanvasLayersComposeScene()
     private val surface = SkiaSurface()
 
