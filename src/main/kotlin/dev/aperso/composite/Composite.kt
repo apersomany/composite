@@ -1,6 +1,7 @@
 package dev.aperso.composite
 
 import dev.aperso.composite.skia.SkiaContext
+import dev.aperso.composite.test.AssetImageTest
 import dev.aperso.composite.test.ItemTest
 import dev.aperso.composite.test.TextureTest
 import net.fabricmc.api.ClientModInitializer
@@ -26,6 +27,7 @@ object Composite : ClientModInitializer {
                         ClientCommandManager.literal("test")
                             .then(TextureTest.register())
                             .then(ItemTest.register())
+                            .then(AssetImageTest.register())
                     )
             )
         }

@@ -38,7 +38,7 @@ import org.lwjgl.glfw.GLFWCharCallbackI
 import kotlin.math.pow
 
 @OptIn(InternalComposeUiApi::class, ExperimentalComposeUiApi::class)
-open class ComposeScreenCore(
+open class ComposeGui(
     val content: @Composable () -> Unit,
 ) : PlatformContext by PlatformContext.Empty {
     private val minecraft = Minecraft.getInstance()
@@ -113,12 +113,12 @@ open class ComposeScreenCore(
 
     private var charCallback: GLFWCharCallbackI? = null
 
-    fun init() {
+    open fun init() {
         val window = minecraft.window
         surface.resize(window.width, window.height)
         scale = window.guiScale.toFloat()
         scene.size = IntSize(window.width, window.height)
-        scene.density = Density(scale * 0.5f, 1.25f)
+        scene.density = Density(scale * 0.5f, 1.0f)
         if (charCallback == null) {
             charCallback = GLFW.glfwSetCharCallback(minecraft.window.window) {
                 _, codepoint -> onEditCommand?.invoke(listOf(CommitTextCommand(Char(codepoint).toString(), 1)))
@@ -126,12 +126,12 @@ open class ComposeScreenCore(
         }
     }
 
-    fun onClose() {
+    open fun onClose() {
         scene.close()
         GLFW.glfwSetCharCallback(minecraft.window.window, charCallback)
     }
 
-    fun render(guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
+    open fun render(guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
         scene.sendPointerEvent(
             PointerEventType.Move,
             Offset(mouseX * scale, mouseY * scale)
@@ -153,7 +153,7 @@ open class ComposeScreenCore(
         }
     }
 
-    fun mouseClicked(mouseX: Double, mouseY: Double, button: Int): Boolean {
+    open fun mouseClicked(mouseX: Double, mouseY: Double, button: Int): Boolean {
         scene.sendPointerEvent(
             PointerEventType.Press,
             Offset((mouseX * scale).toFloat(), (mouseY * scale).toFloat()),
@@ -162,7 +162,7 @@ open class ComposeScreenCore(
         return true
     }
 
-    fun mouseReleased(mouseX: Double, mouseY: Double, button: Int): Boolean {
+    open fun mouseReleased(mouseX: Double, mouseY: Double, button: Int): Boolean {
         scene.sendPointerEvent(
             PointerEventType.Release,
             Offset((mouseX * scale).toFloat(), (mouseY * scale).toFloat()),
@@ -171,10 +171,10 @@ open class ComposeScreenCore(
         return true
     }
 
-    fun mouseScrolled(mouseX: Double, mouseY: Double, scrollX: Double, scrollY: Double): Boolean {
+    open fun mouseScrolled(mouseX: Double, mouseY: Double, scrollX: Double, scrollY: Double): Boolean {
         this.scrollX += scrollX.toFloat()
         this.scrollY -= scrollY.toFloat()
-        return true // Returning true as core handled it, though original called super.
+        return true // Returning true as gui handled it, though original called super.
     }
 
     private fun keyEvent(type: KeyEventType, keyCode: Int, modifiers: Int): KeyEvent {
@@ -196,7 +196,7 @@ open class ComposeScreenCore(
         )
     }
 
-    fun keyPressed(keyCode: Int, scanCode: Int, modifiers: Int): Boolean {
+    open fun keyPressed(keyCode: Int, scanCode: Int, modifiers: Int): Boolean {
         val result = scene.sendKeyEvent(keyEvent(KeyEventType.KeyDown, keyCode, modifiers))
         return if (result) {
             true
@@ -208,12 +208,7 @@ open class ComposeScreenCore(
         }
     }
 
-    fun keyReleased(keyCode: Int, scanCode: Int, modifiers: Int): Boolean {
-        val result = scene.sendKeyEvent(keyEvent(KeyEventType.KeyUp, keyCode, modifiers))
-        return if (result) {
-            true
-        } else {
-            false
-        }
+    open fun keyReleased(keyCode: Int, scanCode: Int, modifiers: Int): Boolean {
+        return scene.sendKeyEvent(keyEvent(KeyEventType.KeyUp, keyCode, modifiers))
     }
 }
