@@ -25,6 +25,7 @@ import androidx.compose.ui.text.input.CommitTextCommand
 import androidx.compose.ui.text.input.EditCommand
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
+import dev.aperso.composite.i18n.LocalLocale
 import dev.aperso.composite.skia.LocalSkiaSurface
 import dev.aperso.composite.skia.SkiaSurface
 import kotlinx.coroutines.Dispatchers
@@ -78,7 +79,8 @@ open class ComposeGui(
         scene.setContent {
             CompositionLocalProvider(
                 LocalSkiaSurface provides surface,
-                LocalClipboard provides clipboard
+                LocalClipboard provides clipboard,
+                LocalLocale provides (minecraft?.options?.languageCode ?: "en_us")
             ) {
                 content()
             }

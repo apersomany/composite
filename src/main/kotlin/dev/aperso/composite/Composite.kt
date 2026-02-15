@@ -4,6 +4,7 @@ import dev.aperso.composite.skia.SkiaContext
 import dev.aperso.composite.test.AssetImageTest
 import dev.aperso.composite.test.ItemTest
 import dev.aperso.composite.test.TextureTest
+import dev.aperso.composite.test.TranslationTest
 import net.fabricmc.api.ClientModInitializer
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback
@@ -28,6 +29,7 @@ object Composite : ClientModInitializer {
                             .then(TextureTest.register())
                             .then(ItemTest.register())
                             .then(AssetImageTest.register())
+                            .then(TranslationTest.register())
                     )
             )
         }

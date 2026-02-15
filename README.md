@@ -11,6 +11,7 @@
     *   **HUD**: Render overlays with `ComposeHud`.
     *   **Items**: Render Minecraft ItemStacks inside Compose layouts.
     *   **Textures**: Render Minecraft textures (ResourceLocations) inside Compose layouts.
+    *   **Translations**: Integrated i18n support with rich text styling preservation.
 *   **Input Handling**: Automatic mapping of Minecraft mouse and keyboard events to Compose.
 
 ## Installation
@@ -32,7 +33,7 @@ repositories {
 dependencies {
     implementation(compose.desktop.windows_x64)
     implementation(compose.material3)
-    modImplementation("com.github.apersomany:composite:0.4.0")
+    modImplementation("com.github.apersomany:composite:0.5.0")
 }
 ```
 
@@ -116,6 +117,63 @@ Components.Texture(
     modifier = Modifier.size(64.dp)
 )
 ```
+
+### Translations
+
+Composite provides integrated i18n support that bridges Minecraft's translation system with Compose.
+
+#### Basic Translation
+
+Use `translate()` for simple string translation:
+
+```kotlin
+import dev.aperso.composite.i18n.translate
+import androidx.compose.material3.Text
+
+// Inside a Composable
+Text(text = translate("block.minecraft.diamond_block"))
+Text(text = translate("death.attack.player", arrayOf("Steve", "Alex")))
+```
+
+#### TranslatableText Component
+
+Use `Components.TranslatableText` for Material 3 styled text:
+
+```kotlin
+import dev.aperso.composite.component.Components
+
+// Inside a Composable
+Components.TranslatableText(
+    key = "block.minecraft.diamond_block"
+)
+
+Components.TranslatableText(
+    key = "death.attack.player",
+    args = arrayOf("Steve", "Alex"),
+    color = androidx.compose.ui.graphics.Color.Red
+)
+```
+
+#### Rich Text Translation
+
+Use `translateAnnotated()` or `Components.TranslatableAnnotatedText` to preserve styling (colors, bold, italic, etc.) from language files:
+
+```kotlin
+import dev.aperso.composite.i18n.translateAnnotated
+import dev.aperso.composite.component.Components
+
+// Using the function directly
+val annotatedString = translateAnnotated("chat.type.advancement.task", arrayOf("Player", "Advancement!"))
+
+// Using the component with click handling
+Components.TranslatableAnnotatedText(
+    key = "chat.type.advancement.task",
+    args = arrayOf("Player", "Advancement!"),
+    onClick = { offset -> /* handle click */ }
+)
+```
+
+Translations automatically update when the player changes their language setting.
 
 ## Requirements
 
