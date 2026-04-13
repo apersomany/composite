@@ -3,13 +3,14 @@ package dev.aperso.composite.skia
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.asComposeCanvas
+import com.mojang.blaze3d.opengl.GlStateManager
 import com.mojang.blaze3d.opengl.GlTexture
 import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.textures.GpuTexture
 import com.mojang.blaze3d.textures.GpuTextureView
 import com.mojang.blaze3d.textures.TextureFormat
 import net.minecraft.client.Minecraft
-import net.minecraft.client.gui.GuiGraphics
+import net.minecraft.client.gui.GuiGraphicsExtractor
 import net.minecraft.client.renderer.texture.AbstractTexture
 import net.minecraft.resources.Identifier
 import org.jetbrains.skia.BackendRenderTarget
@@ -17,10 +18,14 @@ import org.jetbrains.skia.ColorSpace
 import org.jetbrains.skia.Surface
 import org.jetbrains.skia.SurfaceColorFormat
 import org.jetbrains.skia.SurfaceOrigin
-import org.lwjgl.opengl.GL11
-import org.lwjgl.opengl.GL30
 import java.util.ArrayDeque
 import java.util.Deque
+import java.util.concurrent.atomic.AtomicInteger
+
+private const val GL_FRAMEBUFFER = 0x8D40
+private const val GL_COLOR_ATTACHMENT0 = 0x8CE0
+private const val GL_TEXTURE_2D = 0x0DE1
+private const val GL_RGBA8 = 0x8058
 
 private class SkiaBackedTexture : AbstractTexture() {
     fun update(tex: GpuTexture?, view: GpuTextureView?) {
@@ -38,10 +43,6 @@ private class SkiaBackedTexture : AbstractTexture() {
     }
 }
 
-/**
- * Complete set of resources for one surface size.
- * ALL resources including the FBO are created together and destroyed together.
- */
 private class SurfaceResources(
     val fbo: Int,
     val gpuTexture: GpuTexture,
@@ -56,7 +57,7 @@ private class SurfaceResources(
         }
         gpuTextureView.close()
         gpuTexture.close()
-        GL30.glDeleteFramebuffers(fbo)
+        GlStateManager._glDeleteFramebuffers(fbo)
     }
 }
 
@@ -67,8 +68,10 @@ private data class DeferredCleanup(
 
 class SkiaSurface {
     companion object {
-        private val TEXTURE_ID = Identifier.fromNamespaceAndPath("composite", "skia_surface")
+        private val counter = AtomicInteger(0)
     }
+
+    private val textureId = Identifier.fromNamespaceAndPath("composite", "skia_surface_${counter.getAndIncrement()}")
 
     private var currentWidth: Int = 0
     private var currentHeight: Int = 0
@@ -82,10 +85,8 @@ class SkiaSurface {
         if (width <= 0 || height <= 0) return
         if (currentWidth == width && currentHeight == height) return
 
-        // 1. Detach from wrapper immediately
         skiaTexture.clearRefs()
 
-        // 2. Schedule entire old resource set for deferred cleanup
         active?.let { old ->
             pendingCleanup.add(DeferredCleanup(old))
         }
@@ -94,7 +95,6 @@ class SkiaSurface {
         currentWidth = width
         currentHeight = height
 
-        // 3. Create entirely new resource set
         val device = RenderSystem.getDevice()
         val usage = GpuTexture.USAGE_COPY_DST or
                 GpuTexture.USAGE_COPY_SRC or
@@ -108,26 +108,18 @@ class SkiaSurface {
         val gpuTextureView = device.createTextureView(gpuTexture)
         val glId = (gpuTexture as GlTexture).glId()
 
-        // New FBO for this size (never reused)
-        val fbo = GL30.glGenFramebuffers()
-        GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, fbo)
-        GL30.glFramebufferTexture2D(
-            GL30.GL_FRAMEBUFFER, GL30.GL_COLOR_ATTACHMENT0,
-            GL11.GL_TEXTURE_2D, glId, 0
-        )
-        GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, 0)
+        val fbo = GlStateManager.glGenFramebuffers()
+        GlStateManager._glBindFramebuffer(GL_FRAMEBUFFER, fbo)
+        GlStateManager._glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, glId, 0)
+        GlStateManager._glBindFramebuffer(GL_FRAMEBUFFER, 0)
 
-        // New Skia surface
         var skiaSurface: Surface? = null
         var backendTarget: BackendRenderTarget? = null
         SkiaContext.run {
-            val context = SkiaContext.directContext
-            val bt = BackendRenderTarget.makeGL(
-                width, height, 0, 8, fbo, GL30.GL_RGBA8
-            )
+            val bt = BackendRenderTarget.makeGL(width, height, 0, 8, fbo, GL_RGBA8)
             backendTarget = bt
             skiaSurface = Surface.makeFromBackendRenderTarget(
-                context, bt,
+                SkiaContext.directContext, bt,
                 SurfaceOrigin.BOTTOM_LEFT,
                 SurfaceColorFormat.RGBA_8888,
                 ColorSpace.sRGB
@@ -138,10 +130,10 @@ class SkiaSurface {
         skiaTexture.update(gpuTexture, gpuTextureView)
     }
 
-    private val recordedCalls: Deque<GuiGraphics.() -> Unit> = ArrayDeque()
+    private val recordedCalls: Deque<GuiGraphicsExtractor.() -> Unit> = ArrayDeque()
 
-    fun record(call: GuiGraphics.() -> Unit) {
-        recordedCalls.push(call)
+    fun record(call: GuiGraphicsExtractor.() -> Unit) {
+        recordedCalls.addLast(call)
     }
 
     private fun processDeferredCleanup() {
@@ -156,30 +148,27 @@ class SkiaSurface {
         }
     }
 
-    fun render(guiGraphics: GuiGraphics, render: (Canvas) -> Unit) {
+    fun extractRenderState(guiGraphics: GuiGraphicsExtractor, render: (Canvas) -> Unit) {
         processDeferredCleanup()
 
         val res = active ?: return
 
         if (!textureRegistered) {
-            Minecraft.getInstance().textureManager.register(TEXTURE_ID, skiaTexture)
+            Minecraft.getInstance().textureManager.register(textureId, skiaTexture)
             textureRegistered = true
         }
 
-        // 1. Render Compose UI via Skia
         SkiaContext.run {
+            SkiaContext.directContext.resetGLAll()
             res.skiaSurface.canvas.clear(0)
             render(res.skiaSurface.canvas.asComposeCanvas())
-            SkiaContext.directContext.resetGLAll()
-            SkiaContext.directContext.flush()
+            res.skiaSurface.flushAndSubmit()
         }
 
-        // 2. Submit to GuiRenderState
         val guiW = guiGraphics.guiWidth()
         val guiH = guiGraphics.guiHeight()
-        guiGraphics.blit(TEXTURE_ID, 0, 0, guiW, guiH, 0f, 1f, 1f, 0f)
+        guiGraphics.blit(textureId, 0, 0, guiW, guiH, 0f, 1f, 1f, 0f)
 
-        // 3. Replay recorded calls
         while (true) {
             val call = recordedCalls.poll() ?: break
             call.invoke(guiGraphics)

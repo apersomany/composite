@@ -18,7 +18,8 @@ object AssetImageTest : TestCommand("asset_image") {
         ) {
             Components.AssetImage(
                 resource = Identifier.fromNamespaceAndPath("minecraft", "textures/block/dirt.png"),
-                modifier = Modifier.size(128.dp)
+                modifier = Modifier.size(128.dp),
+                alpha = 0.5f
             )
         }
     }

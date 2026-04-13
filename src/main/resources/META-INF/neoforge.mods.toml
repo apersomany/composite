@@ -1,0 +1,22 @@
+modLoader="javafml"
+loaderVersion="[1,)"
+license="All Rights Reserved"
+
+[[mods]]
+modId="composite"
+displayName="Composite"
+version="${version}"
+authors="apersomany"
+credits = "shihyeon"
+description='''
+A library mod that lets you use Jetpack Compose and Material 3 in Minecraft.
+'''
+modUrl="https://modrinth.com/mod/composite"
+displayURL="https://modrinth.com/mod/composite"
+
+[[dependencies.composite]]
+modId="minecraft"
+type="required"
+versionRange="[26.1,)"
+ordering="NONE"
+side="CLIENT"

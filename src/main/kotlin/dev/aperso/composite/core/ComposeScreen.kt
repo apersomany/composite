@@ -1,7 +1,7 @@
 package dev.aperso.composite.core
 
 import androidx.compose.runtime.Composable
-import net.minecraft.client.gui.GuiGraphics
+import net.minecraft.client.gui.GuiGraphicsExtractor
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.client.input.KeyEvent
 import net.minecraft.client.input.MouseButtonEvent
@@ -22,9 +22,9 @@ open class ComposeScreen(
         gui.onClose()
     }
 
-    override fun render(graphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
-        super.render(graphics, mouseX, mouseY, partialTick)
-        gui.render(graphics, mouseX, mouseY, partialTick)
+    override fun extractRenderState(graphics: GuiGraphicsExtractor, mouseX: Int, mouseY: Int, partialTick: Float) {
+        super.extractRenderState(graphics, mouseX, mouseY, partialTick)
+        gui.extractRenderState(graphics, mouseX, mouseY, partialTick)
     }
 
     override fun mouseClicked(event: MouseButtonEvent, doubleClick: Boolean): Boolean {

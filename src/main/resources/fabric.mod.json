@@ -7,6 +7,9 @@
 	"authors": [
 		"apersomany"
 	],
+	"contributors": [
+		"shihyeon"
+	],
 	"contact": {
 		"homepage": "https://erudites.dev",
 		"sources": "https://github.com/erudites-dev/composite"
@@ -22,7 +25,7 @@
 		]
 	},
 	"depends": {
-		"minecraft": "1.21.11",
+		"minecraft": "<=26.1",
 		"fabric-api": "*",
 		"fabric-language-kotlin": "*"
 	}

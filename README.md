@@ -1,18 +1,23 @@
 # Composite
 
-**Composite** is a Minecraft Fabric library that brings **Jetpack Compose** and **Material 3** to Minecraft modding. It allows developers to build modern, reactive user interfaces for Minecraft Screens and HUDs using the declarative power of Kotlin and Compose.
+**Composite** is a Minecraft library mod that brings **Jetpack Compose** and **Material 3** to Minecraft modding. It allows developers to build modern, reactive user interfaces for Minecraft Screens and HUDs using the declarative power of Kotlin and Compose.
+
+Supports both **Fabric** and **NeoForge**.
 
 ## Features
 
 *   **Jetpack Compose UI**: Build Minecraft GUIs using standard Compose code.
-*   **Material 3**: Full support for Material Design 3 components.
+*   **Material 3**: Full support for Material Design 3 components and Material Icons Extended.
 *   **Minecraft Integration**:
     *   **Screens**: Create full-screen UIs with `ComposeScreen`.
-    *   **HUD**: Render overlays with `ComposeHud`.
+    *   **HUD**: Render overlays with `ComposeHud` registered via `ComposeHudRegistry`.
+    *   **HUD Layering**: Position your HUD before or after any vanilla HUD element using `HudLayerPosition` and `VanillaHud` constants.
     *   **Items**: Render Minecraft ItemStacks inside Compose layouts.
-    *   **Textures**: Render Minecraft textures (ResourceLocations) inside Compose layouts.
+    *   **Textures**: Render Minecraft textures (Identifier) inside Compose layouts.
+    *   **Asset Images**: Load and render PNGs from resource packs as Compose `Image`s.
     *   **Translations**: Integrated i18n support with rich text styling preservation.
 *   **Input Handling**: Automatic mapping of Minecraft mouse and keyboard events to Compose.
+*   **Multi-loader**: Works on both Fabric and NeoForge.
 
 ## Installation
 
@@ -31,7 +36,7 @@ repositories {
 }
 
 dependencies {
-    implementation(compose.desktop.windows_x64)
+    implementation(compose.desktop.currentOs)
     implementation(compose.material3)
     modImplementation("com.github.apersomany:composite:0.5.0")
 }
@@ -41,7 +46,7 @@ dependencies {
 
 ### Creating a Screen
 
-To create a custom screen, instantiate `ComposeScreen` and pass your Composable content. You can then open it using `Minecraft.getInstance().setScreen(...)`.
+Instantiate `ComposeScreen` and pass your composable content, then open it with `Minecraft.getInstance().setScreen(...)`.
 
 ```kotlin
 import dev.aperso.composite.core.ComposeScreen
@@ -69,28 +74,53 @@ fun openMyScreen() {
 
 ### Creating a HUD Overlay
 
-To render a HUD overlay, register a `ComposeHud` instance with Fabric's `HudRenderCallback`.
+Register a `ComposeHud` with `ComposeHudRegistry`, specifying where it should be rendered relative to a vanilla HUD element using `HudLayerPosition` and `VanillaHud` constants.
 
 ```kotlin
 import dev.aperso.composite.core.ComposeHud
-import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback
+import dev.aperso.composite.hud.ComposeHudRegistry
+import dev.aperso.composite.hud.HudLayerPosition
+import dev.aperso.composite.hud.VanillaHud
 import androidx.compose.material3.Text
 import androidx.compose.ui.graphics.Color
+import net.minecraft.resources.Identifier
 
-// In your ClientModInitializer
-override fun onInitializeClient() {
-    HudRenderCallback.EVENT.register(ComposeHud {
+// In your ClientModInitializer (or NeoForge client setup)
+ComposeHudRegistry.get().register(
+    id = Identifier.of("mymod", "my_overlay"),
+    position = HudLayerPosition.before(VanillaHud.HOTBAR),
+    layer = ComposeHud {
         Text(
-            text = "HUD Overlay", 
+            text = "HUD Overlay",
             color = Color.White
         )
-    })
-}
+    }
+)
 ```
 
-### Rendering Items
+#### `HudLayerPosition`
 
-You can render Minecraft items within your Compose UI using the `Components.Item` composable.
+Position your HUD layer relative to any vanilla element:
+
+```kotlin
+HudLayerPosition.before(VanillaHud.HOTBAR)       // render before the hotbar
+HudLayerPosition.after(VanillaHud.HEALTH_BAR)    // render after the health bar
+```
+
+#### `VanillaHud` constants
+
+| Constant | Description |
+|---|---|
+| `CAMERA_OVERLAYS` / `MISC_OVERLAYS` | Camera and misc overlays |
+| `CROSSHAIR` | Crosshair |
+| `HOTBAR` / `SELECTED_ITEM_NAME` / `HELD_ITEM_TOOLTIP` | Hotbar area |
+| `HEALTH_BAR` / `ARMOR_BAR` / `FOOD_BAR` / `AIR_BAR` / `MOUNT_HEALTH` | Status bars |
+| `INFO_BAR` / `EXPERIENCE_LEVEL` | Experience |
+| `MOB_EFFECTS` / `BOSS_BAR` / `SLEEP` / `DEMO_TIMER` | Effects and overlays |
+| `SCOREBOARD` / `OVERLAY_MESSAGE` / `TITLE_AND_SUBTITLE` | Text overlays |
+| `CHAT` / `PLAYER_LIST` / `SUBTITLES` | Chat and player list |
+
+### Rendering Items
 
 ```kotlin
 import dev.aperso.composite.component.Components
@@ -103,28 +133,37 @@ Components.Item(ItemStack(Items.DIAMOND_SWORD))
 
 ### Rendering Textures
 
-You can render any Minecraft texture using `Components.Texture`.
-
 ```kotlin
 import dev.aperso.composite.component.Components
-import net.minecraft.resources.ResourceLocation
+import net.minecraft.resources.Identifier
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.unit.dp
 
 // Inside a Composable
 Components.Texture(
-    texture = ResourceLocation.fromNamespaceAndPath("minecraft", "textures/block/dirt.png"),
+    texture = Identifier.fromNamespaceAndPath("minecraft", "textures/block/dirt.png"),
     modifier = Modifier.size(64.dp)
+)
+```
+
+### Asset Images
+
+Load a PNG directly from the resource pack:
+
+```kotlin
+import dev.aperso.composite.component.Components
+import net.minecraft.resources.Identifier
+
+// Inside a Composable
+Components.AssetImage(
+    identifier = Identifier.fromNamespaceAndPath("mymod", "textures/gui/icon.png"),
+    modifier = Modifier.size(32.dp)
 )
 ```
 
 ### Translations
 
-Composite provides integrated i18n support that bridges Minecraft's translation system with Compose.
-
 #### Basic Translation
-
-Use `translate()` for simple string translation:
 
 ```kotlin
 import dev.aperso.composite.i18n.translate
@@ -137,15 +176,11 @@ Text(text = translate("death.attack.player", arrayOf("Steve", "Alex")))
 
 #### TranslatableText Component
 
-Use `Components.TranslatableText` for Material 3 styled text:
-
 ```kotlin
 import dev.aperso.composite.component.Components
 
 // Inside a Composable
-Components.TranslatableText(
-    key = "block.minecraft.diamond_block"
-)
+Components.TranslatableText(key = "block.minecraft.diamond_block")
 
 Components.TranslatableText(
     key = "death.attack.player",
@@ -156,16 +191,14 @@ Components.TranslatableText(
 
 #### Rich Text Translation
 
-Use `translateAnnotated()` or `Components.TranslatableAnnotatedText` to preserve styling (colors, bold, italic, etc.) from language files:
+Preserves colors, bold, italic, and other styling from language files:
 
 ```kotlin
 import dev.aperso.composite.i18n.translateAnnotated
 import dev.aperso.composite.component.Components
 
-// Using the function directly
 val annotatedString = translateAnnotated("chat.type.advancement.task", arrayOf("Player", "Advancement!"))
 
-// Using the component with click handling
 Components.TranslatableAnnotatedText(
     key = "chat.type.advancement.task",
     args = arrayOf("Player", "Advancement!"),
@@ -177,9 +210,8 @@ Translations automatically update when the player changes their language setting
 
 ## Requirements
 
-*   Minecraft 1.21.1
-*   Fabric Loader
-*   Fabric Language Kotlin
+*   Minecraft 26.1
+*   Fabric Loader + Fabric API + Fabric Language Kotlin, **or** NeoForge
 
 ## License
 

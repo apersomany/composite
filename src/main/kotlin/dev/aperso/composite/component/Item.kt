@@ -21,7 +21,6 @@ import dev.aperso.composite.skia.LocalSkiaSurface
 import kotlinx.coroutines.isActive
 import net.minecraft.client.Minecraft
 import net.minecraft.world.item.ItemStack
-import kotlin.math.min
 
 @Composable
 fun Item(item: ItemStack, modifier: Modifier = Modifier, decorations: Boolean = true, tooltip: Boolean = true) {
@@ -31,45 +30,38 @@ fun Item(item: ItemStack, modifier: Modifier = Modifier, decorations: Boolean = 
     val hovered by interactionSource.collectIsHoveredAsState()
 
     val minecraft = Minecraft.getInstance()
-    val window = minecraft.window
-    val guiScale = window.guiScale.toFloat()
-    val density = 1f / guiScale
 
-    LaunchedEffect(coordinates, guiScale) {
-        coordinates?.let { coordinates ->
-            while (isActive) {
-                withFrameNanos {
-                    surface.record {
-                        if (!coordinates.isAttached) return@record
-                        val position = coordinates.positionInWindow()
-                        val bounds = coordinates.boundsInWindow()
+    LaunchedEffect(Unit) {
+        while (isActive) {
+            withFrameNanos {
+                val coords = coordinates ?: return@withFrameNanos
+                surface.record {
+                    if (!coords.isAttached) return@record
 
-                        // Convert to GUI coordinates (integer)
-                        val guiX = (position.x * density).toInt()
-                        val guiY = (position.y * density).toInt()
-                        val boundsWidthGui = (bounds.width * density).toInt()
-                        val boundsHeightGui = (bounds.height * density).toInt()
+                    val guiScale = minecraft.window.guiScale.toFloat()
+                    val density = 1f / guiScale
 
-                        // In 1.21.11, items render at 16x16 in GUI space.
-                        // Center the item within the available bounds.
-                        val itemSize = 16
-                        val itemX = guiX + (boundsWidthGui - itemSize) / 2
-                        val itemY = guiY + (boundsHeightGui - itemSize) / 2
+                    val position = coords.positionInWindow()
+                    val bounds = coords.boundsInWindow()
 
-                        // Scissor to bounds
-                        enableScissor(guiX, guiY, guiX + boundsWidthGui, guiY + boundsHeightGui)
+                    val guiX = (position.x * density).toInt()
+                    val guiY = (position.y * density).toInt()
+                    val boundsWidthGui = (bounds.width * density).toInt()
+                    val boundsHeightGui = (bounds.height * density).toInt()
 
-                        // Render item at direct GUI coordinates - no matrix transforms
-                        renderFakeItem(item, itemX, itemY)
-                        if (decorations) renderItemDecorations(minecraft.font, item, itemX, itemY)
+                    val itemSize = 16
+                    val itemX = guiX + (boundsWidthGui - itemSize) / 2
+                    val itemY = guiY + (boundsHeightGui - itemSize) / 2
 
-                        disableScissor()
+                    enableScissor(guiX, guiY, guiX + boundsWidthGui, guiY + boundsHeightGui)
+                    fakeItem(item, itemX, itemY)
+                    if (decorations) itemDecorations(minecraft.font, item, itemX, itemY)
+                    disableScissor()
 
-                        if (tooltip && hovered) {
-                            val mouseX = (minecraft.mouseHandler.xpos() * density).toInt()
-                            val mouseY = (minecraft.mouseHandler.ypos() * density).toInt()
-                            setTooltipForNextFrame(minecraft.font, item, mouseX, mouseY)
-                        }
+                    if (tooltip && hovered) {
+                        val mouseX = (minecraft.mouseHandler.xpos() * density).toInt()
+                        val mouseY = (minecraft.mouseHandler.ypos() * density).toInt()
+                        setTooltipForNextFrame(minecraft.font, item, mouseX, mouseY)
                     }
                 }
             }

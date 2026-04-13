@@ -66,42 +66,36 @@ private fun TextureImpl(
     var coordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
 
     val minecraft = Minecraft.getInstance()
-    val window = minecraft.window
-    val guiScale = window.guiScale.toFloat()
-    val density = 1f / guiScale
 
-    LaunchedEffect(coordinates, guiScale, textureLocation) {
-        coordinates?.let { coordinates ->
-            while (isActive) {
-                withFrameNanos {
-                    surface.record {
-                        if (!coordinates.isAttached) return@record
-                        val position = coordinates.positionInWindow()
-                        val bounds = coordinates.boundsInWindow()
+    LaunchedEffect(textureLocation) {
+        while (isActive) {
+            withFrameNanos {
+                val coords = coordinates ?: return@withFrameNanos
+                surface.record {
+                    if (!coords.isAttached) return@record
 
-                        // Direct GUI coordinates (no matrix transforms)
-                        val guiX = (position.x * density).toInt()
-                        val guiY = (position.y * density).toInt()
-                        val widthGui = (bounds.width * density).toInt()
-                        val heightGui = (bounds.height * density).toInt()
+                    val guiScale = minecraft.window.guiScale.toFloat()
+                    val density = 1f / guiScale
 
-                        if (widthGui <= 0 || heightGui <= 0) return@record
+                    val position = coords.positionInWindow()
+                    val bounds = coords.boundsInWindow()
 
-                        enableScissor(guiX, guiY, guiX + widthGui, guiY + heightGui)
+                    val guiX = (position.x * density).toInt()
+                    val guiY = (position.y * density).toInt()
+                    val widthGui = (bounds.width * density).toInt()
+                    val heightGui = (bounds.height * density).toInt()
 
-                        // blit(location, x0, y0, x1, y1, u0, u1, v0, v1)
-                        // x0,y0 = top-left; x1,y1 = bottom-right
-                        // u0,u1 = left,right UV; v0,v1 = top,bottom UV
-                        blit(
-                            textureLocation,
-                            guiX, guiY,
-                            guiX + widthGui, guiY + heightGui,
-                            u, u + w,
-                            v, v + h
-                        )
+                    if (widthGui <= 0 || heightGui <= 0) return@record
 
-                        disableScissor()
-                    }
+                    enableScissor(guiX, guiY, guiX + widthGui, guiY + heightGui)
+                    blit(
+                        textureLocation,
+                        guiX, guiY,
+                        guiX + widthGui, guiY + heightGui,
+                        u, u + w,
+                        v, v + h
+                    )
+                    disableScissor()
                 }
             }
         }

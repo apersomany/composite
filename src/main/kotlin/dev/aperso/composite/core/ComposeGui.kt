@@ -2,6 +2,7 @@ package dev.aperso.composite.core
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.geometry.Offset
@@ -32,7 +33,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.withContext
 import net.minecraft.client.Minecraft
-import net.minecraft.client.gui.GuiGraphics
+import net.minecraft.client.gui.GuiGraphicsExtractor
 import org.jetbrains.skiko.currentNanoTime
 import org.lwjgl.glfw.GLFW
 import org.lwjgl.glfw.GLFWCharCallbackI
@@ -75,12 +76,17 @@ open class ComposeGui(
     private var scrollX = 0f
     private var scrollY = 0f
 
+    private val localeState = mutableStateOf(minecraft.options.languageCode)
+
+    // Cached standard cursors to avoid GLFW resource leaks
+    private val standardCursors = mutableMapOf<Int, Long>()
+
     init {
         scene.setContent {
             CompositionLocalProvider(
                 LocalSkiaSurface provides surface,
                 LocalClipboard provides clipboard,
-                LocalLocale provides minecraft.options.languageCode
+                LocalLocale provides localeState.value
             ) {
                 content()
             }
@@ -99,18 +105,16 @@ open class ComposeGui(
     }
 
     override fun setPointerIcon(pointerIcon: PointerIcon) {
-        val cursor = when (pointerIcon) {
+        val cursorType = when (pointerIcon) {
             PointerIcon.Hand -> GLFW.GLFW_HAND_CURSOR
             PointerIcon.Text -> GLFW.GLFW_IBEAM_CURSOR
             PointerIcon.Crosshair -> GLFW.GLFW_CROSSHAIR_CURSOR
             else -> GLFW.GLFW_ARROW_CURSOR
         }
-        minecraft.window.let {
-            GLFW.glfwSetCursor(
-                it.handle(),
-                GLFW.glfwCreateStandardCursor(cursor)
-            )
+        val cursor = standardCursors.getOrPut(cursorType) {
+            GLFW.glfwCreateStandardCursor(cursorType)
         }
+        GLFW.glfwSetCursor(minecraft.window.handle(), cursor)
     }
 
     private var charCallback: GLFWCharCallbackI? = null
@@ -119,8 +123,10 @@ open class ComposeGui(
         val window = minecraft.window
         surface.resize(window.width, window.height)
         scale = window.guiScale.toFloat()
-        scene.size = IntSize(window.width, window.height)
-        scene.density = Density(scale * 0.5f, 1.0f)
+        val newSize = IntSize(window.width, window.height)
+        if (scene.size != newSize) scene.size = newSize
+        val newDensity = Density(scale * 0.5f, 1.0f)
+        if (scene.density != newDensity) scene.density = newDensity
         if (charCallback == null) {
             charCallback = GLFW.glfwSetCharCallback(minecraft.window.handle()) {
                     _, codepoint -> onEditCommand?.invoke(listOf(CommitTextCommand(Char(codepoint).toString(), 1)))
@@ -131,9 +137,13 @@ open class ComposeGui(
     open fun onClose() {
         scene.close()
         GLFW.glfwSetCharCallback(minecraft.window.handle(), charCallback)
+        standardCursors.values.forEach { GLFW.glfwDestroyCursor(it) }
+        standardCursors.clear()
     }
 
-    open fun render(guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
+    open fun extractRenderState(guiGraphics: GuiGraphicsExtractor, mouseX: Int, mouseY: Int, partialTick: Float) {
+        localeState.value = minecraft.options.languageCode
+
         scene.sendPointerEvent(
             PointerEventType.Move,
             Offset(mouseX * scale, mouseY * scale)
@@ -150,7 +160,7 @@ open class ComposeGui(
         )
         scrollX -= decayX
         scrollY -= decayY
-        surface.render(guiGraphics) {
+        surface.extractRenderState(guiGraphics) {
             scene.render(it, currentTime)
         }
     }

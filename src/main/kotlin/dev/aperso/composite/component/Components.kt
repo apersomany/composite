@@ -22,9 +22,6 @@ import net.minecraft.world.item.ItemStack
  * 
  * This object provides composable functions for integrating Minecraft-specific
  * elements like items, textures, and translations into your Compose UI.
- *
- * Note: In 1.21.11, ResourceLocation may be mapped as Identifier depending on
- * your mapping configuration. Adjust imports accordingly.
  */
 object Components {
     @Composable
