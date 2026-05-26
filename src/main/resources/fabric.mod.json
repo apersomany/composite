@@ -14,7 +14,7 @@
 		"homepage": "https://erudites.dev",
 		"sources": "https://github.com/erudites-dev/composite"
 	},
-	"license": "All Rights Reserved",
+	"license": "MIT",
 	"environment": "client",
 	"entrypoints": {
 		"client": [
